@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>現場巡視記録簿（クラウド版）</title>
+
+<style>
+  /* =========================================================
+     【1】 全体・スマホUIのスタイル
+     ========================================================= */
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif;
+    background-color: #f4f7f6; margin: 0; padding: 0;
+  }
+  * { box-sizing: border-box; }
+
+  /* ナビゲーションタブ */
+  #app-nav {
+    background: #0056b3; display: flex;
+    position: sticky; top: 0; z-index: 1000;
+  }
+  .nav-btn {
+    flex: 1; padding: 15px; text-align: center; color: white;
+    font-weight: bold; cursor: pointer; border: none; background: transparent;
+    font-size: 15px; opacity: 0.7; transition: 0.3s;
+  }
+  .nav-btn.active { opacity: 1; border-bottom: 4px solid #ffeb3b; }
+
+  /* セクション切り替え */
+  .app-section { display: none; padding: 15px; max-width: 600px; margin: 0 auto; padding-bottom: 120px; }
+  .app-section.active { display: block; }
+
+  /* カード・フォーム部品 */
+  .card { background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  .form-group { margin-bottom: 12px; }
+  .form-group label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #555; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;
+  }
+  .flex-row { display: flex; gap: 10px; }
+  .flex-row .form-group { flex: 1; }
+
+  /* 点検項目 */
+  .category-title { background: #0056b3; color: #fff; padding: 10px; border-radius: 4px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+  .btn-bulk-na { background: #6c757d; color: #fff; border: 1px solid #fff; border-radius: 4px; font-size: 12px; padding: 4px 8px; cursor: pointer; font-weight: normal; }
+  .item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+  .item-text { flex: 1; font-size: 14px; padding-right: 10px; line-height: 1.4; }
+  .btn-group { display: flex; gap: 5px; }
+  .btn-group button { width: 40px; height: 40px; border: 1px solid #ccc; background: #f9f9f9; border-radius: 4px; font-size: 16px; font-weight: bold; color: #999; }
+  .btn-group button.active[data-val="○"] { background: #28a745; color: #fff; border-color: #28a745; }
+  .btn-group button.active[data-val="×"] { background: #dc3545; color: #fff; border-color: #dc3545; }
+  .btn-group button.active[data-val="ー"] { background: #6c757d; color: #fff; border-color: #6c757d; }
+  .action-btn { width: 100%; padding: 12px; background: #17a2b8; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; margin-bottom: 20px; cursor: pointer; }
+
+  /* 履歴リスト */
+  .history-list { list-style: none; padding: 0; margin: 0; }
+  .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #ddd; background: #fafafa; border-radius: 4px; margin-bottom: 8px; }
+  .history-item-info { flex: 1; }
+  .history-item-date { font-weight: bold; font-size: 16px; color: #333; }
+  .history-item-inspector { font-size: 13px; color: #666; margin-top: 4px; }
+  .history-btn { background: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
+
+  /* 下部固定ボタンエリア */
+  .bottom-actions { position: fixed; bottom: 20px; left: 0; width: 100%; display: flex; justify-content: center; gap: 10px; z-index: 1000; pointer-events: none; }
+  .bottom-actions button { pointer-events: auto; border: none; border-radius: 30px; padding: 15px 25px; font-size: 16px; font-weight: bold; color: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; gap: 8px;}
+  .btn-print { background: #28a745; }
+  
+  /* ローディング・通知 */
+  #loader { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: #0056b3; flex-direction: column; gap: 10px; }
+  #toast { position: fixed; top: -50px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; transition: top 0.3s ease; z-index: 2000; }
+  #toast.show { top: 70px; }
+
+  /* =========================================================
+     【2】 印刷用レイアウトのスタイル (A4横に完全固定)
+     ========================================================= */
+  #print-container { display: none; }
+
+  .print-page {
+    width: 297mm;
+    height: 209mm;
+    /* 上25mm(綴じ代), 右15mm, 下20mm, 左15mm */
+    padding: 25mm 15mm 20mm 15mm;
+    box-sizing: border-box;
+    font-family: "MS PMincho", "Hiragino Mincho Pro", serif;
+    color: #000;
+    background: #fff;
+    overflow: hidden;
+  }
+  
+  .doc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .doc-title { font-size: 24px; font-weight: bold; margin: 0; text-align: center; flex: 1; }
+  
+  .doc-meta-table { border-collapse: collapse; font-size: 11px; margin-left: auto; }
+  .doc-meta-table td { padding: 1px 4px; vertical-align: bottom; white-space: nowrap; }
+  .doc-legend { font-size: 13px; font-weight: bold; text-align: right; margin-top: 4px; }
+  
+  .tables-wrapper { display: flex; gap: 8px; align-items: flex-start; }
+  .doc-table { flex: 1; width: 100%; border-collapse: collapse; font-size: 9.5px; table-layout: fixed; }
+  .doc-table th, .doc-table td { border: 1px solid #000; vertical-align: middle; padding: 2px 4px; line-height: 1.15; word-wrap: break-word; }
+  .doc-table th { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; text-align: center; font-size: 11px; }
+  .col-item { width: 85%; }
+  .col-res { width: 15%; text-align: center; font-weight: bold; }
+  .row-category td { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; }
+  
+  .doc-comment { margin-top: 10px; border: 1px solid #000; padding: 8px; height: 55px; font-size: 11px; box-sizing: border-box; }
+  .doc-comment-title { font-weight: bold; margin-bottom: 2px; font-size: 9px; }
+
+  /* 印刷プレビュー時の制御 */
+  @media print {
+    @page { size: A4 landscape; margin: 0; }
+    body { background: #fff; }
+    #app-nav, .app-section, .bottom-actions, #toast, #loader { display: none !important; }
+    #print-container { display: block !important; }
+    .print-page { page-break-after: always; break-after: page; }
+    .print-page:last-child { page-break-after: auto; break-after: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ローディング・通知 -->
+<div id="loader">
+  <div>処理中...</div><div style="font-size:14px; font-weight:normal;">少々お待ちください</div>
+</div>
+<div id="toast"></div>
+
+<!-- タブナビゲーション -->
+<div id="app-nav">
+  <button class="nav-btn active" onclick="window.App.switchTab('input')">📝 今日の記録・入力</button>
+  <button class="nav-btn" onclick="window.App.switchTab('history')">📅 履歴・月間印刷</button>
+</div>
+
+<!-- =========================================================
+     【1】 入力・点検セクション
+     ========================================================= -->
+<div id="section-input" class="app-section active">
+  <div class="card">
+    <div class="flex-row">
+      <div class="form-group"><label>対象日を選択</label><input type="date" id="in-iso-date" onchange="window.App.onDateChange()"></div>
+    </div>
+    <div class="form-group"><label>巡視日 (和暦)</label><input type="text" id="in-date" readonly style="background:#f0f0f0;"></div>
+    <div class="form-group"><label>巡視者</label><input type="text" id="in-inspector" placeholder="氏名を入力"></div>
+    <div class="flex-row">
+      <div class="form-group"><label>時間(AM)</label><div style="display:flex; gap:5px;"><input type="time" id="in-am-s"> ～ <input type="time" id="in-am-e"></div></div>
+    </div>
+    <div class="flex-row">
+      <div class="form-group"><label>時間(PM)</label><div style="display:flex; gap:5px;"><input type="time" id="in-pm-s"> ～ <input type="time" id="in-pm-e"></div></div>
+    </div>
+    <div class="flex-row">
+      <div class="form-group"><label>WBGT(AM)</label><input type="number" id="in-wbgt-am" step="0.1"></div>
+      <div class="form-group"><label>WBGT(PM)</label><input type="number" id="in-wbgt-pm" step="0.1"></div>
+    </div>
+  </div>
+
+  <button class="action-btn" onclick="window.App.setAllResults('○')">すべての項目を「○」にする</button>
+  
+  <div id="inspection-items"></div>
+
+  <div class="card">
+    <div class="form-group"><label>指摘・是正・処置内容</label><textarea id="in-comment" rows="4"></textarea></div>
+  </div>
+
+  <button class="action-btn" style="background:#ff9800; height:60px; font-size:18px;" onclick="window.App.saveToCloud()">
+    ☁️ 入力内容をクラウドに保存
+  </button>
+</div>
+
+<!-- =========================================================
+     【2】 履歴・月間印刷セクション
+     ========================================================= -->
+<div id="section-history" class="app-section">
+  <div class="card">
+    <div class="form-group">
+      <label>表示する月を選択</label>
+      <input type="month" id="history-month" onchange="window.App.loadHistory()">
+    </div>
+    <button class="action-btn" style="background:#0056b3; margin-top:10px;" onclick="window.App.printBulkMonth()">
+      🖨️ この月の記録を一括印刷（PDF保存）
+    </button>
+  </div>
+  
+  <ul class="history-list" id="history-list-container">
+    <!-- JSで履歴一覧が生成されます -->
+  </ul>
+</div>
+
+<!-- 入力画面用の印刷ボタン（フローティング） -->
+<div class="bottom-actions" id="btn-single-print">
+  <button class="btn-print" onclick="window.App.printSingleRecord()">
+    🖨️ この日の記録を印刷・PDF保存
+  </button>
+</div>
+
+<!-- =========================================================
+     【3】 レイアウトテンプレート (印刷用)
+     ========================================================= -->
+<template id="paper-template">
+  <div class="print-page">
+    <div class="doc-header">
+      <div style="flex: 1;"></div>
+      <h1 class="doc-title">現場巡視チェックシート</h1>
+      <div style="flex: 1.2;">
+        <table class="doc-meta-table">
+          <tr>
+            <td style="text-align:right;">巡視日:</td><td class="out-date"></td>
+            <td style="text-align:right; padding-left:10px;">巡視者:</td><td class="out-inspector" style="min-width:80px; border-bottom:1px solid #000;"></td>
+          </tr>
+          <tr>
+            <td style="text-align:right;">巡視時間:</td><td colspan="3"><span class="out-time-am"></span>、<span class="out-time-pm"></span></td>
+          </tr>
+          <tr>
+            <td style="text-align:right;">WBGT:</td><td colspan="3">AM: <span class="out-wbgt-am"></span> / PM: <span class="out-wbgt-pm"></span></td>
+          </tr>
+        </table>
+        <div class="doc-legend">【凡例】○:良好　×:不良　ー:該当無し</div>
+      </div>
+    </div>
+    
+    <div class="tables-wrapper">
+      <table class="doc-table"><thead><tr><th class="col-item">点検項目</th><th class="col-res">結果</th></tr></thead><tbody class="out-tbody-1"></tbody></table>
+      <table class="doc-table"><thead><tr><th class="col-item">点検項目</th><th class="col-res">結果</th></tr></thead><tbody class="out-tbody-2"></tbody></table>
+      <table class="doc-table"><thead><tr><th class="col-item">点検項目</th><th class="col-res">結果</th></tr></thead><tbody class="out-tbody-3"></tbody></table>
+    </div>
+    
+    <div class="doc-comment">
+      <div class="doc-comment-title">【指摘・是正・処置内容】</div>
+      <div class="out-comment" style="white-space: pre-wrap;"></div>
+    </div>
+  </div>
+</template>
+
+<!-- 印刷時にだけ表示されるコンテナ -->
+<div id="print-container"></div>
+
+
+<!-- =========================================================
+     【4】 Firebase & アプリケーション・ロジック
+     ========================================================= -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+  import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+  // ▼▼▼ Vercel等でご自身で公開する場合は、ここを自分のFirebase設定に書き換えてください ▼▼▼
+  let firebaseConfig = {apiKey: "AIzaSyBSEe6CAaB-uxTWpr_-tPhIj4L9_E4U_cM",
+  authDomain: "junshi-app-2026.firebaseapp.com",
+  projectId: "junshi-app-2026",
+  storageBucket: "junshi-app-2026.firebasestorage.app",
+  messagingSenderId: "897143526529",
+  appId: "1:897143526529:web:5b84b29d9d47cb62fee980"
+  };
+
+  // ※Geminiプレビュー環境用の自動設定
+  let appId = 'inspection-app';
+  if (typeof __firebase_config !== 'undefined') {
+    firebaseConfig = JSON.parse(__firebase_config);
+    appId = typeof __app_id !== 'undefined' ? __app_id : appId;
+  }
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // 点検項目データ
+  const INSEPCTION_DATA = [
+    { name: "■安全管理", items: ["社旗・安全旗", "朝礼看板・掲示物", "ラジオ体操", "KY記録", "新規入場教育", "看板の設置", "誘導員", "施錠", "第三者災害防止処置"] },
+    { name: "■熱中症対策", items: ["WBGT値(暑さ指数)の測定・掲示および基準に応じた休憩指示はなされているか", "休憩所の環境(日陰の確保、エアコン・扇風機の稼働状況)は適切か", "水分・塩分補給用飲料(経口補水液や塩飴など)は十分に常備・補充されているか", "作業員の体調確認(異常な発汗、顔色、疲労等の初期症状がないか)を職長が行っているか", "空調服や保冷剤等の熱中症予防グッズの着用・活用がなされているか", "熱中症疑い発生時の緊急対応フロー・病院への搬送体制が現場に周知されているか"] },
+    { name: "■整理整頓・清掃片付", items: ["事務所", "作業員休憩所", "トイレ", "足場及び周辺", "現場周囲", "清掃用具", "倉庫(道具入)", "安全通路", "吸い殻", "現場出入口", "消火器の設置状況"] },
+    { name: "■服装及び保護具の着用状況", items: ["作業員の服装", "保護帽", "安全靴", "墜落制止用器具(胴ベルト・フルハーネス)", "耳栓", "保護メガネ", "防塵マスク", "手袋"] },
+    { name: "■土留支保工及び地山", items: ["作業主任者の配置", "手すりの状態", "昇降路", "材料の損傷", "墜落防止対策", "切り梁、腹起しの状態", "切り梁交差部・接続部の状態", "法面の状態", "掘削方法", "立入禁止処置", "路肩の処置"] },
+    { name: "■足場・昇降路・構台等", items: ["手摺、隙間、安全看板、積載荷重標示", "昇降階段は緩んだり、取り外されてないか", "作業場所までの通路、昇降階段の確保", "一時取り外した足場板は復旧してあるか", "作業のため一時取り外したブレース、手摺、端部ストッパーの復旧"] },
+    { name: "■型枠支保工", items: ["部脚は沈下したり、ずれていないか", "通路に躓き、不要物や支障物はないか", "水平つなぎ", "存置期間", "支保工の間隔", "滑り止め", "作業主任者の配置"] },
+    { name: "■クレーン・玉掛", items: ["作業計画書", "資格の確認", "クレーン設置状況", "作業半径立入禁止処置", "資格者の配置", "ワイヤー点検色", "玉掛け用具の状態", "無線の通信状況"] },
+    { name: "■建設機械", items: ["資格者の配置", "始業前点検", "用途外使用はしていないか", "荷台用ハシゴの使用"] },
+    { name: "■機械器具・電気設備", items: ["照明設備", "分電盤(取扱責任者の表記、アースの設置)", "高圧線の養生", "架空線の養生"] },
+    { name: "■危険物管理", items: ["火元責任者の選任", "危険物の管理状態"] }
+  ];
+
+  let currentResults = {};
+  let allCloudData = {}; 
+
+  const Utils = {
+    getIsoDate: (d = new Date()) => {
+      const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    },
+    getJpDate: (isoDateStr) => {
+      const d = new Date(isoDateStr);
+      try { return new Intl.DateTimeFormat('ja-JP-u-ca-japanese', { era: 'long', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }).format(d); }
+      catch(e) { return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`; }
+    },
+    showLoader: (show) => document.getElementById('loader').style.display = show ? 'flex' : 'none',
+    showToast: (msg) => {
+      const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+  };
+
+  const App = {
+    init: async function() {
+      Utils.showLoader(true);
+      this.buildUI();
+      
+      try {
+        if (typeof __initial_auth_token !== 'undefined') {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+        await this.fetchAllCloudData(); 
+        
+        const todayIso = Utils.getIsoDate();
+        document.getElementById('in-iso-date').value = todayIso;
+        document.getElementById('history-month').value = todayIso.substring(0, 7);
+        this.onDateChange();
+        
+      } catch (err) {
+        console.error("Firebase Auth Error", err);
+        Utils.showToast("通信エラーが発生しました");
+      }
+      Utils.showLoader(false);
+    },
+
+    switchTab: function(tabName) {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.app-section').forEach(s => s.classList.remove('active'));
+      document.querySelector(`.nav-btn[onclick*="${tabName}"]`).classList.add('active');
+      document.getElementById(`section-${tabName}`).classList.add('active');
+      
+      const btnPrint = document.getElementById('btn-single-print');
+      btnPrint.style.display = tabName === 'input' ? 'flex' : 'none';
+      
+      if(tabName === 'history') this.loadHistory();
+    },
+
+    buildUI: function() {
+      const container = document.getElementById('inspection-items');
+      const targetCats = ["■土留支保工及び地山", "■足場・昇降路・構台等", "■型枠支保工", "■クレーン・玉掛", "■建設機械"];
+
+      INSEPCTION_DATA.forEach((cat, cIdx) => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        let btnHtml = targetCats.includes(cat.name) ? `<button class="btn-bulk-na" onclick="window.App.setCategoryNA(${cIdx})">一括該当無し</button>` : '';
+        div.innerHTML = `<div class="category-title"><span>${cat.name}</span>${btnHtml}</div>`;
+        
+        cat.items.forEach((item, iIdx) => {
+          const id = `item_${cIdx}_${iIdx}`;
+          if(!currentResults[id]) currentResults[id] = '○';
+          div.innerHTML += `
+            <div class="item-row">
+              <div class="item-text">${item}</div>
+              <div class="btn-group" id="grp_${id}">
+                <button data-val="○" onclick="window.App.setResult('${id}','○')">○</button>
+                <button data-val="×" onclick="window.App.setResult('${id}','×')">×</button>
+                <button data-val="ー" onclick="window.App.setResult('${id}','ー')">ー</button>
+              </div>
+            </div>`;
+        });
+        container.appendChild(div);
+      });
+    },
+
+    updateButtons: function() {
+      Object.keys(currentResults).forEach(id => {
+        const grp = document.getElementById(`grp_${id}`);
+        if(grp) Array.from(grp.children).forEach(b => {
+          if(b.dataset.val === currentResults[id]) b.classList.add('active');
+          else b.classList.remove('active');
+        });
+      });
+    },
+
+    setResult: function(id, val) { currentResults[id] = val; this.updateButtons(); },
+    setAllResults: function(val) { Object.keys(currentResults).forEach(id => currentResults[id] = val); this.updateButtons(); Utils.showToast(`すべて「${val}」にしました`); },
+    setCategoryNA: function(cIdx) {
+      INSEPCTION_DATA[cIdx].items.forEach((item, iIdx) => currentResults[`item_${cIdx}_${iIdx}`] = 'ー');
+      this.updateButtons(); Utils.showToast('対象項目を「該当無し」にしました');
+    },
+
+    onDateChange: function() {
+      const isoDate = document.getElementById('in-iso-date').value;
+      if(!isoDate) return;
+      document.getElementById('in-date').value = Utils.getJpDate(isoDate);
+      
+      const data = allCloudData[isoDate];
+      document.getElementById('in-inspector').value = data ? (data.inspector || '') : '';
+      document.getElementById('in-am-s').value = data ? (data.amS || '') : '';
+      document.getElementById('in-am-e').value = data ? (data.amE || '') : '';
+      document.getElementById('in-pm-s').value = data ? (data.pmS || '') : '';
+      document.getElementById('in-pm-e').value = data ? (data.pmE || '') : '';
+      document.getElementById('in-wbgt-am').value = data ? (data.wAm || '') : '';
+      document.getElementById('in-wbgt-pm').value = data ? (data.wPm || '') : '';
+      document.getElementById('in-comment').value = data ? (data.comment || '') : '';
+      
+      if(data && data.results) {
+        Object.assign(currentResults, data.results);
+      }
+      this.updateButtons();
+    },
+
+    fetchAllCloudData: async function() {
+      if (!auth.currentUser) return;
+      const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'inspections');
+      const snap = await getDocs(colRef);
+      allCloudData = {};
+      snap.forEach(doc => { allCloudData[doc.id] = doc.data(); });
+    },
+
+    saveToCloud: async function() {
+      if (!auth.currentUser) return;
+      Utils.showLoader(true);
+      const isoDate = document.getElementById('in-iso-date').value;
+      const data = {
+        dateStr: Utils.getJpDate(isoDate),
+        inspector: document.getElementById('in-inspector').value,
+        amS: document.getElementById('in-am-s').value, amE: document.getElementById('in-am-e').value,
+        pmS: document.getElementById('in-pm-s').value, pmE: document.getElementById('in-pm-e').value,
+        wAm: document.getElementById('in-wbgt-am').value, wPm: document.getElementById('in-wbgt-pm').value,
+        comment: document.getElementById('in-comment').value,
+        results: currentResults,
+        timestamp: new Date().getTime()
+      };
+
+      try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'inspections', isoDate);
+        await setDoc(docRef, data);
+        allCloudData[isoDate] = data; 
+        Utils.showToast("☁️ クラウドに保存しました！");
+      } catch (err) {
+        console.error(err);
+        alert("保存に失敗しました");
+      }
+      Utils.showLoader(false);
+    },
+
+    loadHistory: function() {
+      const monthStr = document.getElementById('history-month').value; 
+      const listContainer = document.getElementById('history-list-container');
+      listContainer.innerHTML = '';
+      
+      const monthData = Object.keys(allCloudData)
+        .filter(iso => iso.startsWith(monthStr))
+        .sort((a, b) => a.localeCompare(b))
+        .map(iso => ({ id: iso, data: allCloudData[iso] }));
+
+      if (monthData.length === 0) {
+        listContainer.innerHTML = '<li style="padding: 20px; text-align:center; color:#777;">この月の記録はありません</li>';
+        return;
+      }
+
+      monthData.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'history-item';
+        li.innerHTML = `
+          <div class="history-item-info">
+            <div class="history-item-date">${item.data.dateStr}</div>
+            <div class="history-item-inspector">巡視者: ${item.data.inspector || '未入力'}</div>
+          </div>
+          <button class="history-btn" onclick="window.App.editPastData('${item.id}')">開く</button>
+        `;
+        listContainer.appendChild(li);
+      });
+    },
+
+    editPastData: function(isoDate) {
+      document.getElementById('in-iso-date').value = isoDate;
+      this.switchTab('input');
+      this.onDateChange();
+      Utils.showToast(`${Utils.getJpDate(isoDate)} の記録を開きました`);
+    },
+
+    // 印刷用のレイアウトを生成
+    createPaperElement: function(data, isoDate) {
+      const tmpl = document.getElementById('paper-template').content.cloneNode(true);
+      
+      tmpl.querySelector('.out-date').innerText = Utils.getJpDate(isoDate);
+      tmpl.querySelector('.out-inspector').innerText = data.inspector || '';
+      tmpl.querySelector('.out-time-am').innerText = (data.amS || data.amE) ? `${data.amS} ～ ${data.amE}` : '';
+      tmpl.querySelector('.out-time-pm').innerText = (data.pmS || data.pmE) ? `${data.pmS} ～ ${data.pmE}` : '';
+      tmpl.querySelector('.out-wbgt-am').innerText = data.wAm || '';
+      tmpl.querySelector('.out-wbgt-pm').innerText = data.wPm || '';
+      tmpl.querySelector('.out-comment').innerText = data.comment || '';
+
+      let flatItems = [];
+      INSEPCTION_DATA.forEach((cat, cIdx) => {
+        flatItems.push({ isTitle: true, text: cat.name });
+        cat.items.forEach((item, iIdx) => flatItems.push({ isTitle: false, text: item, id: `item_${cIdx}_${iIdx}` }));
+      });
+
+      // 左の列を減らし、中央と右に回すバランス調整
+      const baseLen = Math.ceil(flatItems.length / 3);
+      const colCounts = [baseLen - 2, baseLen + 1, flatItems.length - (baseLen - 2) - (baseLen + 1)];
+      let startIdx = 0;
+      
+      for(let i=1; i<=3; i++) {
+        const tbody = tmpl.querySelector(`.out-tbody-${i}`);
+        const itemsCount = colCounts[i-1];
+        const items = flatItems.slice(startIdx, startIdx + itemsCount);
+        startIdx += itemsCount;
+        
+        items.forEach(d => {
+          const tr = document.createElement('tr');
+          if(d.isTitle) {
+            tr.className = 'row-category'; tr.innerHTML = `<td colspan="2">${d.text}</td>`;
+          } else {
+            const res = (data.results && data.results[d.id]) ? data.results[d.id] : '';
+            tr.innerHTML = `<td>${d.text}</td><td class="col-res">${res}</td>`;
+          }
+          tbody.appendChild(tr);
+        });
+      }
+      return tmpl;
+    },
+
+    // 【新機能】この日だけを印刷・PDF化する
+    printSingleRecord: function() {
+      const isoDate = document.getElementById('in-iso-date').value;
+      const tempData = {
+        inspector: document.getElementById('in-inspector').value,
+        amS: document.getElementById('in-am-s').value, amE: document.getElementById('in-am-e').value,
+        pmS: document.getElementById('in-pm-s').value, pmE: document.getElementById('in-pm-e').value,
+        wAm: document.getElementById('in-wbgt-am').value, wPm: document.getElementById('in-wbgt-pm').value,
+        comment: document.getElementById('in-comment').value,
+        results: currentResults
+      };
+
+      const container = document.getElementById('print-container');
+      container.innerHTML = '';
+      container.appendChild(this.createPaperElement(tempData, isoDate));
+
+      // 印刷プレビューを呼び出す
+      setTimeout(() => {
+        window.print();
+        Utils.showToast("印刷プレビューを呼び出しました");
+      }, 300);
+    },
+
+    // 月間の一括印刷・PDF化
+    printBulkMonth: function() {
+      const monthStr = document.getElementById('history-month').value;
+      const monthData = Object.keys(allCloudData)
+        .filter(iso => iso.startsWith(monthStr))
+        .sort((a, b) => a.localeCompare(b))
+        .map(iso => ({ id: iso, data: allCloudData[iso] }));
+
+      if (monthData.length === 0) {
+        alert("印刷するデータがありません"); return;
+      }
+
+      const container = document.getElementById('print-container');
+      container.innerHTML = ''; 
+
+      monthData.forEach(item => {
+        container.appendChild(this.createPaperElement(item.data, item.id));
+      });
+
+      setTimeout(() => {
+        window.print();
+        Utils.showToast("一括印刷プレビューを呼び出しました");
+      }, 500);
+    }
+  };
+
+  // グローバルにバインド
+  window.App = App;
+  window.onload = () => App.init();
+</script>
+</body>
+</html>

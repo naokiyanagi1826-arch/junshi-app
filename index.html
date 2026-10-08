@@ -35,7 +35,7 @@
   .card { background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
   .form-group { margin-bottom: 12px; }
   .form-group label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #555; }
-  .form-group input, .form-group select, .form-group textarea {
+  .form-group input[type="text"], .form-group input[type="time"], .form-group input[type="number"], .form-group input[type="date"], .form-group input[type="month"], .form-group textarea, select {
     width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;
   }
   .flex-row { display: flex; gap: 10px; }
@@ -47,29 +47,33 @@
   .item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
   .item-text { flex: 1; font-size: 14px; padding-right: 10px; line-height: 1.4; }
   .btn-group { display: flex; gap: 5px; }
-  .btn-group button { width: 40px; height: 40px; border: 1px solid #ccc; background: #f9f9f9; border-radius: 4px; font-size: 16px; font-weight: bold; color: #999; }
+  .btn-group button { width: 40px; height: 40px; border: 1px solid #ccc; background: #f9f9f9; border-radius: 4px; font-size: 16px; font-weight: bold; color: #999; cursor: pointer; }
   .btn-group button.active[data-val="○"] { background: #28a745; color: #fff; border-color: #28a745; }
   .btn-group button.active[data-val="×"] { background: #dc3545; color: #fff; border-color: #dc3545; }
-  .btn-group button.active[data-val="ー"] { background: #6c757d; color: #fff; border-color: #6c757d; }
+  .btn-group button.active[data-val="－"] { background: #6c757d; color: #fff; border-color: #6c757d; }
   .action-btn { width: 100%; padding: 12px; background: #17a2b8; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; margin-bottom: 20px; cursor: pointer; }
 
   /* 履歴リスト */
   .history-list { list-style: none; padding: 0; margin: 0; }
-  .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #ddd; background: #fafafa; border-radius: 4px; margin-bottom: 8px; }
+  .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #ddd; background: #fafafa; border-radius: 4px; margin-bottom: 8px; gap: 10px; }
   .history-item-info { flex: 1; }
   .history-item-date { font-weight: bold; font-size: 16px; color: #333; }
   .history-item-inspector { font-size: 13px; color: #666; margin-top: 4px; }
   .history-btn { background: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
+  .history-checkbox { width: 20px; height: 20px; margin-right: 5px; }
 
   /* 下部固定ボタンエリア */
   .bottom-actions { position: fixed; bottom: 20px; left: 0; width: 100%; display: flex; justify-content: center; gap: 10px; z-index: 1000; pointer-events: none; }
   .bottom-actions button { pointer-events: auto; border: none; border-radius: 30px; padding: 15px 25px; font-size: 16px; font-weight: bold; color: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; gap: 8px;}
   .btn-print { background: #28a745; }
   
-  /* ローディング・通知 */
+  /* ローディング・通知・モーダル */
   #loader { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: #0056b3; flex-direction: column; gap: 10px; }
   #toast { position: fixed; top: -50px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; transition: top 0.3s ease; z-index: 2000; }
   #toast.show { top: 70px; }
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; align-items: center; justify-content: center; }
+  .modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+  .modal-btn { padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: #fff; }
 
   /* =========================================================
      【2】 印刷用レイアウトのスタイル (A4横に完全固定)
@@ -89,11 +93,15 @@
   }
   
   .doc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-  .doc-title { font-size: 24px; font-weight: bold; margin: 0; text-align: center; flex: 1; }
+  /* タイトルを巡視時間あたりまで下げるためにマージン調整 */
+  .doc-title { font-size: 24px; font-weight: bold; margin: 0; text-align: center; flex: 1; margin-top: 25px; }
   
   .doc-meta-table { border-collapse: collapse; font-size: 11px; margin-left: auto; }
   .doc-meta-table td { padding: 1px 4px; vertical-align: bottom; white-space: nowrap; }
   .doc-legend { font-size: 13px; font-weight: bold; text-align: right; margin-top: 4px; }
+  
+  /* 均等割付用のスタイル */
+  .justify-text { display: flex; justify-content: space-between; margin-left: auto; }
   
   .tables-wrapper { display: flex; gap: 8px; align-items: flex-start; }
   .doc-table { flex: 1; width: 100%; border-collapse: collapse; font-size: 9.5px; table-layout: fixed; }
@@ -110,7 +118,7 @@
   @media print {
     @page { size: A4 landscape; margin: 0; }
     body { background: #fff; }
-    #app-nav, .app-section, .bottom-actions, #toast, #loader { display: none !important; }
+    #app-nav, #site-selector-container, .app-section, .bottom-actions, #toast, #loader, .modal-overlay { display: none !important; }
     #print-container { display: block !important; }
     .print-page { page-break-after: always; break-after: page; }
     .print-page:last-child { page-break-after: auto; break-after: auto; }
@@ -125,16 +133,60 @@
 </div>
 <div id="toast"></div>
 
+<!-- アラート用モーダル (alertの代替) -->
+<div id="alert-modal" class="modal-overlay">
+  <div class="modal-content" style="text-align:center;">
+    <p id="alert-modal-text" style="margin-bottom:20px; font-weight:bold;"></p>
+    <button class="modal-btn" style="background:#0056b3; width:100px;" onclick="document.getElementById('alert-modal').style.display='none'">OK</button>
+  </div>
+</div>
+
+<!-- 削除確認用モーダル (confirmの代替) -->
+<div id="delete-modal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 style="margin-top:0; color:#dc3545;">記録の削除</h3>
+    <p id="delete-modal-text"></p>
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+      <button class="modal-btn" style="background:#6c757d;" onclick="document.getElementById('delete-modal').style.display='none'">キャンセル</button>
+      <button class="modal-btn" id="delete-confirm-btn" style="background:#dc3545;">削除する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新規現場追加用モーダル (promptの代替) -->
+<div id="site-modal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 style="margin-top:0; color:#0056b3;">新しい現場の登録</h3>
+    <p style="font-size:14px; color:#555; margin-bottom:5px;">現場名を入力してください</p>
+    <input type="text" id="new-site-name" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:4px;">
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+      <button class="modal-btn" style="background:#6c757d;" onclick="document.getElementById('site-modal').style.display='none'">キャンセル</button>
+      <button class="modal-btn" style="background:#28a745;" onclick="window.App.saveNewSite()">登録</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- タブナビゲーション -->
 <div id="app-nav">
   <button class="nav-btn active" onclick="window.App.switchTab('input')">📝 今日の記録・入力</button>
-  <button class="nav-btn" onclick="window.App.switchTab('history')">📅 履歴・月間印刷</button>
+  <button class="nav-btn" onclick="window.App.switchTab('history')">📅 履歴・印刷設定</button>
 </div>
+
+<!-- 現場選択エリア (全タブ共通) -->
+<div id="site-selector-container" class="card" style="margin: 15px auto; max-width: 600px; padding: 10px 15px; display:flex; align-items:center; gap: 10px; border: 2px solid #0056b3;">
+  <label style="font-weight:bold; white-space:nowrap; margin-bottom:0; color:#0056b3;">対象現場:</label>
+  <select id="site-select" style="flex:1; padding:8px; border-radius:4px; border:1px solid #ccc; font-size:16px;" onchange="window.App.onSiteChange()">
+    <option value="">読込中...</option>
+  </select>
+  <button onclick="document.getElementById('site-modal').style.display='flex'" style="padding:8px 12px; background:#0056b3; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">新規登録</button>
+</div>
+
 
 <!-- =========================================================
      【1】 入力・点検セクション
      ========================================================= -->
-<div id="section-input" class="app-section active">
+<div id="section-input" class="app-section active" style="padding-top:0;">
   <div class="card">
     <div class="flex-row">
       <div class="form-group"><label>対象日を選択</label><input type="date" id="in-iso-date" onchange="window.App.onDateChange()"></div>
@@ -158,25 +210,31 @@
   <div id="inspection-items"></div>
 
   <div class="card">
-    <div class="form-group"><label>指摘・是正・処置内容</label><textarea id="in-comment" rows="4"></textarea></div>
+    <div class="form-group"><label>指摘・是正・処置内容・その他</label><textarea id="in-comment" rows="4"></textarea></div>
   </div>
 
   <button class="action-btn" style="background:#ff9800; height:60px; font-size:18px;" onclick="window.App.saveToCloud()">
-    ☁️ 入力内容をクラウドに保存
+    ☁️ 入力内容を保存 (現在選択中の現場)
   </button>
 </div>
+
 
 <!-- =========================================================
      【2】 履歴・月間印刷セクション
      ========================================================= -->
-<div id="section-history" class="app-section">
+<div id="section-history" class="app-section" style="padding-top:0;">
   <div class="card">
     <div class="form-group">
       <label>表示する月を選択</label>
       <input type="month" id="history-month" onchange="window.App.loadHistory()">
     </div>
-    <button class="action-btn" style="background:#0056b3; margin-top:10px;" onclick="window.App.printBulkMonth()">
-      🖨️ この月の記録を一括印刷（PDF保存）
+    
+    <!-- 印刷ボタンエリア -->
+    <button class="action-btn" style="background:#0056b3; margin-top:10px; margin-bottom: 10px;" onclick="window.App.printBulkMonth()">
+      🖨️ この月の記録を【一括印刷】
+    </button>
+    <button class="action-btn" style="background:#17a2b8; margin-bottom: 5px;" onclick="window.App.printSelectedRecords()">
+      🖨️ 選択した記録のみを印刷
     </button>
   </div>
   
@@ -192,6 +250,7 @@
   </button>
 </div>
 
+
 <!-- =========================================================
      【3】 レイアウトテンプレート (印刷用)
      ========================================================= -->
@@ -200,20 +259,43 @@
     <div class="doc-header">
       <div style="flex: 1;"></div>
       <h1 class="doc-title">現場巡視チェックシート</h1>
-      <div style="flex: 1.2;">
+      <div style="flex: 1.5;">
         <table class="doc-meta-table">
           <tr>
-            <td style="text-align:right;">巡視日:</td><td class="out-date"></td>
-            <td style="text-align:right; padding-left:10px;">巡視者:</td><td class="out-inspector" style="min-width:80px; border-bottom:1px solid #000;"></td>
+            <td>
+              <div class="justify-text" style="width:55px;"><span>現</span><span>場</span><span>名</span></div>
+            </td>
+            <td style="padding-left:2px;">:</td>
+            <td class="out-sitename" colspan="4" style="border-bottom:1px solid #000; font-weight:bold;"></td>
           </tr>
           <tr>
-            <td style="text-align:right;">巡視時間:</td><td colspan="3"><span class="out-time-am"></span>、<span class="out-time-pm"></span></td>
+            <td>
+              <div class="justify-text" style="width:55px;"><span>巡</span><span>視</span><span>日</span></div>
+            </td>
+            <td style="padding-left:2px;">:</td>
+            <td class="out-date"></td>
+            <td style="padding-left:15px;">
+              <div class="justify-text" style="width:45px;"><span>巡</span><span>視</span><span>者</span></div>
+            </td>
+            <td style="padding-left:2px;">:</td>
+            <td class="out-inspector" style="min-width:80px; border-bottom:1px solid #000;"></td>
           </tr>
           <tr>
-            <td style="text-align:right;">WBGT:</td><td colspan="3">AM: <span class="out-wbgt-am"></span> / PM: <span class="out-wbgt-pm"></span></td>
+            <td>
+              <div class="justify-text" style="width:55px;"><span>巡</span><span>視</span><span>時</span><span>間</span></div>
+            </td>
+            <td style="padding-left:2px;">:</td>
+            <td colspan="4"><span class="out-time-am"></span>、<span class="out-time-pm"></span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="justify-text" style="width:55px;"><span>W</span><span>B</span><span>G</span><span>T</span></div>
+            </td>
+            <td style="padding-left:2px;">:</td>
+            <td colspan="4">AM: <span class="out-wbgt-am"></span> / PM: <span class="out-wbgt-pm"></span></td>
           </tr>
         </table>
-        <div class="doc-legend">【凡例】○:良好　×:不良　ー:該当無し</div>
+        <div class="doc-legend">【凡例】○:良好　×:不良　－:該当無し</div>
       </div>
     </div>
     
@@ -224,7 +306,7 @@
     </div>
     
     <div class="doc-comment">
-      <div class="doc-comment-title">【指摘・是正・処置内容】</div>
+      <div class="doc-comment-title">【指摘・是正・処置内容・その他】</div>
       <div class="out-comment" style="white-space: pre-wrap;"></div>
     </div>
   </div>
@@ -240,18 +322,18 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
   import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDocs, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-  // ▼▼▼ Vercel等でご自身で公開する場合は、ここを自分のFirebase設定に書き換えてください ▼▼▼
-  let firebaseConfig = {apiKey: "AIzaSyBSEe6CAaB-uxTWpr_-tPhIj4L9_E4U_cM",
-  authDomain: "junshi-app-2026.firebaseapp.com",
-  projectId: "junshi-app-2026",
-  storageBucket: "junshi-app-2026.firebasestorage.app",
-  messagingSenderId: "897143526529",
-  appId: "1:897143526529:web:5b84b29d9d47cb62fee980"
+  // ▼ ご自身のFirebase設定に書き換え済みです ▼
+  let firebaseConfig = {
+    apiKey: "AIzaSyBSEe6CAaB-uxTWpr_-tPhIj4L9_E4U_cM",
+    authDomain: "junshi-app-2026.firebaseapp.com",
+    projectId: "junshi-app-2026",
+    storageBucket: "junshi-app-2026.firebasestorage.app",
+    messagingSenderId: "897143526529",
+    appId: "1:897143526529:web:5b84b29d9d47cb62fee980"
   };
 
-  // ※Geminiプレビュー環境用の自動設定
   let appId = 'inspection-app';
   if (typeof __firebase_config !== 'undefined') {
     firebaseConfig = JSON.parse(__firebase_config);
@@ -262,9 +344,9 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // 点検項目データ
+  // 文言の修正(誘導員の配置)を反映済み
   const INSEPCTION_DATA = [
-    { name: "■安全管理", items: ["社旗・安全旗", "朝礼看板・掲示物", "ラジオ体操", "KY記録", "新規入場教育", "看板の設置", "誘導員", "施錠", "第三者災害防止処置"] },
+    { name: "■安全管理", items: ["社旗・安全旗", "朝礼看板・掲示物", "ラジオ体操", "KY記録", "新規入場教育", "看板の設置", "誘導員の配置", "施錠", "第三者災害防止処置"] },
     { name: "■熱中症対策", items: ["WBGT値(暑さ指数)の測定・掲示および基準に応じた休憩指示はなされているか", "休憩所の環境(日陰の確保、エアコン・扇風機の稼働状況)は適切か", "水分・塩分補給用飲料(経口補水液や塩飴など)は十分に常備・補充されているか", "作業員の体調確認(異常な発汗、顔色、疲労等の初期症状がないか)を職長が行っているか", "空調服や保冷剤等の熱中症予防グッズの着用・活用がなされているか", "熱中症疑い発生時の緊急対応フロー・病院への搬送体制が現場に周知されているか"] },
     { name: "■整理整頓・清掃片付", items: ["事務所", "作業員休憩所", "トイレ", "足場及び周辺", "現場周囲", "清掃用具", "倉庫(道具入)", "安全通路", "吸い殻", "現場出入口", "消火器の設置状況"] },
     { name: "■服装及び保護具の着用状況", items: ["作業員の服装", "保護帽", "安全靴", "墜落制止用器具(胴ベルト・フルハーネス)", "耳栓", "保護メガネ", "防塵マスク", "手袋"] },
@@ -294,10 +376,17 @@
     showToast: (msg) => {
       const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 2500);
+    },
+    showAlert: (msg) => {
+      document.getElementById('alert-modal-text').innerText = msg;
+      document.getElementById('alert-modal').style.display = 'flex';
     }
   };
 
   const App = {
+    sites: {},
+    currentSiteId: null,
+    
     init: async function() {
       Utils.showLoader(true);
       this.buildUI();
@@ -308,16 +397,96 @@
         } else {
           await signInAnonymously(auth);
         }
-        await this.fetchAllCloudData(); 
+        
+        await this.fetchSites();
         
         const todayIso = Utils.getIsoDate();
         document.getElementById('in-iso-date').value = todayIso;
         document.getElementById('history-month').value = todayIso.substring(0, 7);
-        this.onDateChange();
         
       } catch (err) {
         console.error("Firebase Auth Error", err);
-        Utils.showToast("通信エラーが発生しました");
+        Utils.showAlert("通信エラーが発生しました");
+      }
+      Utils.showLoader(false);
+    },
+    
+    // 現場データの取得
+    fetchSites: async function() {
+      if(!auth.currentUser) return;
+      const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'sites');
+      const snap = await getDocs(colRef);
+      this.sites = {};
+      const select = document.getElementById('site-select');
+      select.innerHTML = '';
+      
+      if (snap.empty) {
+        select.innerHTML = '<option value="">現場がありません。新規登録してください</option>';
+        this.currentSiteId = null;
+        return;
+      }
+      
+      let hasSites = false;
+      snap.forEach(doc => {
+        this.sites[doc.id] = doc.data();
+        hasSites = true;
+        const opt = document.createElement('option');
+        opt.value = doc.id;
+        opt.textContent = doc.data().name;
+        select.appendChild(opt);
+      });
+      
+      if (hasSites && !this.currentSiteId) {
+         this.currentSiteId = select.value;
+      } else if (hasSites && this.currentSiteId) {
+         select.value = this.currentSiteId;
+      }
+      
+      await this.onSiteChange();
+    },
+    
+    // 現場の切り替え
+    onSiteChange: async function() {
+      const val = document.getElementById('site-select').value;
+      if (!val) {
+        this.currentSiteId = null;
+        allCloudData = {};
+        this.onDateChange();
+        this.loadHistory();
+        return;
+      }
+      this.currentSiteId = val;
+      Utils.showLoader(true);
+      await this.fetchAllCloudData();
+      Utils.showLoader(false);
+      
+      const currentTab = document.querySelector('.nav-btn.active').innerText.includes('入力') ? 'input' : 'history';
+      if (currentTab === 'input') {
+        this.onDateChange();
+      } else {
+        this.loadHistory();
+      }
+    },
+    
+    // 現場の新規登録保存
+    saveNewSite: async function() {
+      const name = document.getElementById('new-site-name').value.trim();
+      if(!name) {
+        Utils.showAlert("現場名を入力してください");
+        return;
+      }
+      document.getElementById('site-modal').style.display = 'none';
+      Utils.showLoader(true);
+      try {
+        const siteId = 'site_' + new Date().getTime();
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', siteId), { name: name, createdAt: new Date().getTime() });
+        document.getElementById('new-site-name').value = '';
+        Utils.showToast("現場を登録しました");
+        this.currentSiteId = siteId;
+        await this.fetchSites();
+      } catch(e) {
+        console.error(e);
+        Utils.showAlert("保存に失敗しました");
       }
       Utils.showLoader(false);
     },
@@ -341,6 +510,7 @@
       INSEPCTION_DATA.forEach((cat, cIdx) => {
         const div = document.createElement('div');
         div.className = 'card';
+        // 一括該当無しボタンの追加
         let btnHtml = targetCats.includes(cat.name) ? `<button class="btn-bulk-na" onclick="window.App.setCategoryNA(${cIdx})">一括該当無し</button>` : '';
         div.innerHTML = `<div class="category-title"><span>${cat.name}</span>${btnHtml}</div>`;
         
@@ -353,7 +523,7 @@
               <div class="btn-group" id="grp_${id}">
                 <button data-val="○" onclick="window.App.setResult('${id}','○')">○</button>
                 <button data-val="×" onclick="window.App.setResult('${id}','×')">×</button>
-                <button data-val="ー" onclick="window.App.setResult('${id}','ー')">ー</button>
+                <button data-val="－" onclick="window.App.setResult('${id}','－')">－</button>
               </div>
             </div>`;
         });
@@ -374,7 +544,7 @@
     setResult: function(id, val) { currentResults[id] = val; this.updateButtons(); },
     setAllResults: function(val) { Object.keys(currentResults).forEach(id => currentResults[id] = val); this.updateButtons(); Utils.showToast(`すべて「${val}」にしました`); },
     setCategoryNA: function(cIdx) {
-      INSEPCTION_DATA[cIdx].items.forEach((item, iIdx) => currentResults[`item_${cIdx}_${iIdx}`] = 'ー');
+      INSEPCTION_DATA[cIdx].items.forEach((item, iIdx) => currentResults[`item_${cIdx}_${iIdx}`] = '－');
       this.updateButtons(); Utils.showToast('対象項目を「該当無し」にしました');
     },
 
@@ -394,14 +564,23 @@
       document.getElementById('in-comment').value = data ? (data.comment || '') : '';
       
       if(data && data.results) {
+        // 全角マイナスへの修正を自動で適用
+        Object.keys(data.results).forEach(key => {
+          if (data.results[key] === '-' || data.results[key] === 'ー') {
+            data.results[key] = '－';
+          }
+        });
         Object.assign(currentResults, data.results);
+      } else {
+        // 新規の場合はすべて○にリセット
+        Object.keys(currentResults).forEach(id => currentResults[id] = '○');
       }
       this.updateButtons();
     },
 
     fetchAllCloudData: async function() {
-      if (!auth.currentUser) return;
-      const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'inspections');
+      if (!auth.currentUser || !this.currentSiteId) return;
+      const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'inspections_' + this.currentSiteId);
       const snap = await getDocs(colRef);
       allCloudData = {};
       snap.forEach(doc => { allCloudData[doc.id] = doc.data(); });
@@ -409,6 +588,10 @@
 
     saveToCloud: async function() {
       if (!auth.currentUser) return;
+      if (!this.currentSiteId) {
+        Utils.showAlert("保存先の現場を選択してください。\n無い場合は「新規登録」から現場を作成してください。");
+        return;
+      }
       Utils.showLoader(true);
       const isoDate = document.getElementById('in-iso-date').value;
       const data = {
@@ -423,13 +606,13 @@
       };
 
       try {
-        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'inspections', isoDate);
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'inspections_' + this.currentSiteId, isoDate);
         await setDoc(docRef, data);
         allCloudData[isoDate] = data; 
-        Utils.showToast("☁️ クラウドに保存しました！");
+        Utils.showToast("☁️ 保存しました！");
       } catch (err) {
         console.error(err);
-        alert("保存に失敗しました");
+        Utils.showAlert("保存に失敗しました");
       }
       Utils.showLoader(false);
     },
@@ -438,6 +621,11 @@
       const monthStr = document.getElementById('history-month').value; 
       const listContainer = document.getElementById('history-list-container');
       listContainer.innerHTML = '';
+      
+      if (!this.currentSiteId) {
+        listContainer.innerHTML = '<li style="padding: 20px; text-align:center; color:#777;">現場が選択されていません</li>';
+        return;
+      }
       
       const monthData = Object.keys(allCloudData)
         .filter(iso => iso.startsWith(monthStr))
@@ -452,12 +640,19 @@
       monthData.forEach(item => {
         const li = document.createElement('li');
         li.className = 'history-item';
+        // チェックボックスと削除ボタンを追加
         li.innerHTML = `
-          <div class="history-item-info">
-            <div class="history-item-date">${item.data.dateStr}</div>
-            <div class="history-item-inspector">巡視者: ${item.data.inspector || '未入力'}</div>
+          <div style="display:flex; align-items:center; gap:10px; flex:1;">
+            <input type="checkbox" class="history-checkbox" value="${item.id}">
+            <div class="history-item-info">
+              <div class="history-item-date">${item.data.dateStr}</div>
+              <div class="history-item-inspector">巡視者: ${item.data.inspector || '未入力'}</div>
+            </div>
           </div>
-          <button class="history-btn" onclick="window.App.editPastData('${item.id}')">開く</button>
+          <div style="display:flex; gap:5px;">
+            <button class="history-btn" onclick="window.App.editPastData('${item.id}')">開く</button>
+            <button class="history-btn" style="background:#dc3545;" onclick="window.App.confirmDelete('${item.id}')">削除</button>
+          </div>
         `;
         listContainer.appendChild(li);
       });
@@ -470,10 +665,37 @@
       Utils.showToast(`${Utils.getJpDate(isoDate)} の記録を開きました`);
     },
 
-    // 印刷用のレイアウトを生成
+    // 削除確認モーダル呼び出し
+    confirmDelete: function(isoDate) {
+      document.getElementById('delete-modal-text').innerText = `${Utils.getJpDate(isoDate)} の記録を完全に削除してもよろしいですか？\nこの操作は取り消せません。`;
+      const btn = document.getElementById('delete-confirm-btn');
+      btn.onclick = () => {
+        document.getElementById('delete-modal').style.display = 'none';
+        window.App.executeDelete(isoDate);
+      };
+      document.getElementById('delete-modal').style.display = 'flex';
+    },
+
+    // 実際の削除処理
+    executeDelete: async function(isoDate) {
+      Utils.showLoader(true);
+      try {
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inspections_' + this.currentSiteId, isoDate));
+        delete allCloudData[isoDate];
+        this.loadHistory();
+        Utils.showToast("削除しました");
+      } catch (err) {
+        console.error(err);
+        Utils.showAlert("削除に失敗しました");
+      }
+      Utils.showLoader(false);
+    },
+
     createPaperElement: function(data, isoDate) {
       const tmpl = document.getElementById('paper-template').content.cloneNode(true);
       
+      const siteName = this.sites[this.currentSiteId] ? this.sites[this.currentSiteId].name : '';
+      tmpl.querySelector('.out-sitename').innerText = siteName;
       tmpl.querySelector('.out-date').innerText = Utils.getJpDate(isoDate);
       tmpl.querySelector('.out-inspector').innerText = data.inspector || '';
       tmpl.querySelector('.out-time-am').innerText = (data.amS || data.amE) ? `${data.amS} ～ ${data.amE}` : '';
@@ -488,9 +710,8 @@
         cat.items.forEach((item, iIdx) => flatItems.push({ isTitle: false, text: item, id: `item_${cIdx}_${iIdx}` }));
       });
 
-      // 左の列を減らし、中央と右に回すバランス調整
-      const baseLen = Math.ceil(flatItems.length / 3);
-      const colCounts = [baseLen - 2, baseLen + 1, flatItems.length - (baseLen - 2) - (baseLen + 1)];
+      // パズルのように列の配分を完全に固定（左25個、中央31個、右31個）して下端を揃える
+      const colCounts = [25, 31, 31];
       let startIdx = 0;
       
       for(let i=1; i<=3; i++) {
@@ -504,7 +725,8 @@
           if(d.isTitle) {
             tr.className = 'row-category'; tr.innerHTML = `<td colspan="2">${d.text}</td>`;
           } else {
-            const res = (data.results && data.results[d.id]) ? data.results[d.id] : '';
+            let res = (data.results && data.results[d.id]) ? data.results[d.id] : '';
+            if (res === '-' || res === 'ー') res = '－';
             tr.innerHTML = `<td>${d.text}</td><td class="col-res">${res}</td>`;
           }
           tbody.appendChild(tr);
@@ -513,7 +735,6 @@
       return tmpl;
     },
 
-    // 【新機能】この日だけを印刷・PDF化する
     printSingleRecord: function() {
       const isoDate = document.getElementById('in-iso-date').value;
       const tempData = {
@@ -529,14 +750,9 @@
       container.innerHTML = '';
       container.appendChild(this.createPaperElement(tempData, isoDate));
 
-      // 印刷プレビューを呼び出す
-      setTimeout(() => {
-        window.print();
-        Utils.showToast("印刷プレビューを呼び出しました");
-      }, 300);
+      setTimeout(() => { window.print(); }, 300);
     },
 
-    // 月間の一括印刷・PDF化
     printBulkMonth: function() {
       const monthStr = document.getElementById('history-month').value;
       const monthData = Object.keys(allCloudData)
@@ -545,24 +761,37 @@
         .map(iso => ({ id: iso, data: allCloudData[iso] }));
 
       if (monthData.length === 0) {
-        alert("印刷するデータがありません"); return;
+        Utils.showAlert("印刷するデータがありません"); return;
       }
 
       const container = document.getElementById('print-container');
       container.innerHTML = ''; 
+      monthData.forEach(item => { container.appendChild(this.createPaperElement(item.data, item.id)); });
 
-      monthData.forEach(item => {
-        container.appendChild(this.createPaperElement(item.data, item.id));
+      setTimeout(() => { window.print(); }, 500);
+    },
+
+    printSelectedRecords: function() {
+      const checkboxes = document.querySelectorAll('.history-checkbox:checked');
+      if (checkboxes.length === 0) {
+        Utils.showAlert("印刷したい記録にチェックを入れてください");
+        return;
+      }
+      
+      const selectedIds = Array.from(checkboxes).map(cb => cb.value).sort((a,b) => a.localeCompare(b));
+      const container = document.getElementById('print-container');
+      container.innerHTML = '';
+
+      selectedIds.forEach(id => {
+        if(allCloudData[id]) {
+          container.appendChild(this.createPaperElement(allCloudData[id], id));
+        }
       });
 
-      setTimeout(() => {
-        window.print();
-        Utils.showToast("一括印刷プレビューを呼び出しました");
-      }, 500);
+      setTimeout(() => { window.print(); }, 500);
     }
   };
 
-  // グローバルにバインド
   window.App = App;
   window.onload = () => App.init();
 </script>

@@ -76,15 +76,17 @@
   .modal-btn { padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: #fff; }
 
   /* =========================================================
-     【2】 印刷用レイアウトのスタイル (A4横に完全固定)
+     【2】 印刷用レイアウトのスタイル (A4横・中央配置)
      ========================================================= */
-  #print-container { display: none; }
+  #print-container { display: none; width: 100%; flex-direction: column; align-items: center; }
 
   .print-page {
-    width: 297mm;
+    width: 100%;
+    max-width: 297mm; /* A4横サイズを超えないように設定 */
     height: 209mm;
-    /* 上25mm(綴じ代), 右15mm, 下20mm, 左15mm */
-    padding: 25mm 15mm 20mm 15mm;
+    /* 上30mm(綴じ代), 右20mm, 下15mm, 左20mm - 左右を揃えて中央配置 */
+    padding: 30mm 20mm 15mm 20mm;
+    margin: 0 auto; /* 横方向中央揃え */
     box-sizing: border-box;
     font-family: "MS PMincho", "Hiragino Mincho Pro", serif;
     color: #000;
@@ -103,7 +105,7 @@
   /* 均等割付用のスタイル */
   .justify-text { display: flex; justify-content: space-between; margin-left: auto; }
   
-  .tables-wrapper { display: flex; gap: 8px; align-items: flex-start; }
+  .tables-wrapper { display: flex; gap: 8px; align-items: flex-start; width: 100%; }
   .doc-table { flex: 1; width: 100%; border-collapse: collapse; font-size: 9.5px; table-layout: fixed; }
   .doc-table th, .doc-table td { border: 1px solid #000; vertical-align: middle; padding: 2px 4px; line-height: 1.15; word-wrap: break-word; }
   .doc-table th { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; text-align: center; font-size: 11px; }
@@ -111,7 +113,7 @@
   .col-res { width: 15%; text-align: center; font-weight: bold; }
   .row-category td { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; }
   
-  .doc-comment { margin-top: 10px; border: 1px solid #000; padding: 8px; height: 55px; font-size: 11px; box-sizing: border-box; }
+  .doc-comment { margin-top: 10px; border: 1px solid #000; padding: 8px; height: 55px; font-size: 11px; box-sizing: border-box; width: 100%; text-align: left; }
   .doc-comment-title { font-weight: bold; margin-bottom: 2px; font-size: 9px; }
 
   /* 印刷プレビュー時の制御 */
@@ -119,7 +121,7 @@
     @page { size: A4 landscape; margin: 0; }
     body { background: #fff; }
     #app-nav, #site-selector-container, .app-section, .bottom-actions, #toast, #loader, .modal-overlay { display: none !important; }
-    #print-container { display: block !important; }
+    #print-container { display: flex !important; }
     .print-page { page-break-after: always; break-after: page; }
     .print-page:last-child { page-break-after: auto; break-after: auto; }
   }
@@ -340,7 +342,6 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // 文言の修正(誘導員の配置)を反映済み
   const INSEPCTION_DATA = [
     { name: "■安全管理", items: ["社旗・安全旗", "朝礼看板・掲示物", "ラジオ体操", "KY記録", "新規入場教育", "看板の設置", "誘導員の配置", "施錠", "第三者災害防止処置"] },
     { name: "■熱中症対策", items: ["WBGT値(暑さ指数)の測定・掲示および基準に応じた休憩指示はなされているか", "休憩所の環境(日陰の確保、エアコン・扇風機の稼働状況)は適切か", "水分・塩分補給用飲料(経口補水液や塩飴など)は十分に常備・補充されているか", "作業員の体調確認(異常な発汗、顔色、疲労等の初期症状がないか)を職長が行っているか", "空調服や保冷剤等の熱中症予防グッズの着用・活用がなされているか", "熱中症疑い発生時の緊急対応フロー・病院への搬送体制が現場に周知されているか"] },
@@ -407,7 +408,6 @@
       Utils.showLoader(false);
     },
     
-    // 現場データの取得
     fetchSites: async function() {
       if(!auth.currentUser) return;
       const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'sites');
@@ -441,7 +441,6 @@
       await this.onSiteChange();
     },
     
-    // 現場の切り替え
     onSiteChange: async function() {
       const val = document.getElementById('site-select').value;
       if (!val) {
@@ -464,7 +463,6 @@
       }
     },
     
-    // 現場の新規登録保存
     saveNewSite: async function() {
       const name = document.getElementById('new-site-name').value.trim();
       if(!name) {
@@ -493,7 +491,6 @@
       document.querySelector(`.nav-btn[onclick*="${tabName}"]`).classList.add('active');
       document.getElementById(`section-${tabName}`).classList.add('active');
       
-      // 保存ボタンの表示・非表示を切り替え
       const btnSave = document.getElementById('btn-floating-save');
       if (btnSave) {
         btnSave.style.display = tabName === 'input' ? 'flex' : 'none';
@@ -509,7 +506,6 @@
       INSEPCTION_DATA.forEach((cat, cIdx) => {
         const div = document.createElement('div');
         div.className = 'card';
-        // 一括該当無しボタンの追加
         let btnHtml = targetCats.includes(cat.name) ? `<button class="btn-bulk-na" onclick="window.App.setCategoryNA(${cIdx})">一括該当無し</button>` : '';
         div.innerHTML = `<div class="category-title"><span>${cat.name}</span>${btnHtml}</div>`;
         
@@ -563,7 +559,6 @@
       document.getElementById('in-comment').value = data ? (data.comment || '') : '';
       
       if(data && data.results) {
-        // 全角マイナスへの修正を自動で適用
         Object.keys(data.results).forEach(key => {
           if (data.results[key] === '-' || data.results[key] === 'ー') {
             data.results[key] = '－';
@@ -571,7 +566,6 @@
         });
         Object.assign(currentResults, data.results);
       } else {
-        // 新規の場合はすべて○にリセット
         Object.keys(currentResults).forEach(id => currentResults[id] = '○');
       }
       this.updateButtons();
@@ -639,7 +633,6 @@
       monthData.forEach(item => {
         const li = document.createElement('li');
         li.className = 'history-item';
-        // チェックボックスと削除ボタンを追加
         li.innerHTML = `
           <div style="display:flex; align-items:center; gap:10px; flex:1;">
             <input type="checkbox" class="history-checkbox" value="${item.id}">
@@ -664,7 +657,6 @@
       Utils.showToast(`${Utils.getJpDate(isoDate)} の記録を開きました`);
     },
 
-    // 削除確認モーダル呼び出し
     confirmDelete: function(isoDate) {
       document.getElementById('delete-modal-text').innerText = `${Utils.getJpDate(isoDate)} の記録を完全に削除してもよろしいですか？\nこの操作は取り消せません。`;
       const btn = document.getElementById('delete-confirm-btn');
@@ -675,7 +667,6 @@
       document.getElementById('delete-modal').style.display = 'flex';
     },
 
-    // 実際の削除処理
     executeDelete: async function(isoDate) {
       Utils.showLoader(true);
       try {
@@ -709,7 +700,6 @@
         cat.items.forEach((item, iIdx) => flatItems.push({ isTitle: false, text: item, id: `item_${cIdx}_${iIdx}` }));
       });
 
-      // パズルのように列の配分を完全に固定（左25個、中央31個、右31個）して下端を揃える
       const colCounts = [25, 31, 31];
       let startIdx = 0;
       
